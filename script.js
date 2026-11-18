@@ -13,12 +13,12 @@ const pages = [
 const header = document.querySelector('#site-header');
 header.innerHTML = `<div class="topbar container">
   <a class="brand" href="index.html" aria-label="CasaNova Design, pagina principală"><span class="brand-mark">CD</span><span>CasaNova Design</span></a>
-  <form class="search" action="produse.html" role="search"><input type="search" name="q" placeholder="Caută" aria-label="Caută produse"><button aria-label="Caută" type="submit">⌕</button></form>
-  <div class="header-icons"><span title="Favorite — în curând" aria-label="Favorite — în curând">♡</span><span title="Cont — în curând" aria-label="Cont — în curând">♙</span><span title="Coș demonstrativ" aria-label="Coș demonstrativ">🛒<small id="cart-count"></small></span><span title="Limba română" aria-label="Limba română">◎<small>RO</small></span></div>
+  <form class="search" action="produse.html" role="search"><input type="search" name="q" placeholder="Caută" aria-label="Caută produse"><button aria-label="Caută" type="submit"><i class="bi bi-search" aria-hidden="true"></i></button></form>
+  <div class="header-icons"><span title="Favorite — în curând" aria-label="Favorite — în curând"><i class="bi bi-heart" aria-hidden="true"></i></span><span title="Cont — în curând" aria-label="Cont — în curând"><i class="bi bi-person-circle" aria-hidden="true"></i></span><span title="Coș demonstrativ" aria-label="Coș demonstrativ"><i class="bi bi-cart3" aria-hidden="true"></i><small id="cart-count"></small></span><span title="Limba română" aria-label="Limba română"><i class="bi bi-globe" aria-hidden="true"></i><small>RO</small></span></div>
 </div><nav class="nav" aria-label="Navigare principală"><div class="nav-inner">${pages.map(([key, url, label]) => `<a href="${url}"${page === key || (page === 'product' && key === 'products') ? ' aria-current="page"' : ''}>${label}</a>`).join('')}</div></nav>`;
 
 document.querySelector('#site-footer').innerHTML = `<div class="footer"><div class="container"><div class="footer-grid">
-  <div><a class="brand" href="index.html"><span class="brand-mark">CD</span><span>CasaNova Design</span></a><p>☏ &nbsp; <a href="tel:+37368123456" style="display:inline">+373 68 123 456</a></p><p>✉ &nbsp; <a href="mailto:contact@casanovadesign.md" style="display:inline">contact@casanovadesign.md</a></p><p>◎ &nbsp; ◉ &nbsp; f &nbsp; in</p></div>
+  <div><a class="brand" href="index.html"><span class="brand-mark">CD</span><span>CasaNova Design</span></a><p><i class="bi bi-telephone-fill" aria-hidden="true"></i> &nbsp; <a href="tel:+37368123456" style="display:inline">+373 68 123 456</a></p><p><i class="bi bi-envelope-fill" aria-hidden="true"></i> &nbsp; <a href="mailto:contact@casanovadesign.md" style="display:inline">contact@casanovadesign.md</a></p><p aria-label="Instagram, Pinterest, Facebook, LinkedIn, Twitter"><i class="bi bi-instagram" aria-hidden="true"></i> &nbsp; <i class="bi bi-pinterest" aria-hidden="true"></i> &nbsp; <i class="bi bi-facebook" aria-hidden="true"></i> &nbsp; <i class="bi bi-linkedin" aria-hidden="true"></i> &nbsp; <i class="bi bi-twitter" aria-hidden="true"></i></p></div>
   <div>Contul meu<br>Autentificare<br>Creați cont<br>Comenzi<br>Favorite<br>Compară produse</div>
   <div>Info Center<a href="despre.html">Despre noi</a><a href="contact.html">Contact</a><a href="servicii.html">Servicii</a><a href="recenzii.html">Recenzii</a></div>
   <div>Termeni și condiții generale<br>Politica de confidențialitate<br>Procedura de reclamații<br>Modificarea acordului privind cookie-urile</div>
@@ -59,7 +59,7 @@ const products = [
   {name:'Tapestry - 3D Model for VRay', price:270, rating:'5.0 (70)', category:'Decorațiuni', group:'Decorațiuni', image:'decor-6'}
 ];
 function productCard(product) {
-  const content = `<img src="assets/${product.image}.jpg" alt="${product.name}" loading="lazy"><span class="stars">★</span> ${product.rating}<h3>${product.name}</h3>`;
+  const content = `<img src="assets/${product.image}.jpg" alt="${product.name}" loading="lazy"><span class="stars"><i class="bi bi-star-fill" aria-hidden="true"></i></span> ${product.rating}<h3>${product.name}</h3>`;
   return `<article class="product-card">${product.detail ? `<a href="produs.html">${content}</a>` : content}<strong>${product.price} lei</strong></article>`;
 }
 const catalog = document.querySelector('#catalog-results');
@@ -108,7 +108,7 @@ const reviews = [
   {name:'Popescu Ion', date:'27.06.2025', category:'Produse', rating:5, text:'Ghivecele ceramice de perete sunt superbe și adaugă o notă proaspătă și modernă în bucătărie.'}
 ];
 function reviewCard(review) {
-  return `<article class="review-card"><span class="stars">★ ${review.rating}</span><h3>${review.name}</h3><p class="review-meta">${review.date}, Moldova</p><blockquote>„${review.text}”</blockquote><p>Achiziție verificată</p></article>`;
+  return `<article class="review-card"><span class="stars"><i class="bi bi-star-fill" aria-hidden="true"></i> ${review.rating}</span><h3>${review.name}</h3><p class="review-meta">${review.date}, Moldova</p><blockquote>„${review.text}”</blockquote><p>Achiziție verificată</p></article>`;
 }
 const reviewFilters = document.querySelector('#review-filters');
 if (reviewFilters) {
