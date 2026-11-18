@@ -38,30 +38,52 @@ if (hero && heroContent[page]) {
   hero.innerHTML = `<section class="hero"><div class="hero-inner container"><div class="hero-copy"><h1>${title}</h1><em>Simplicitate. Lumină. Armonie.</em><p>${description}</p></div><div class="hero-images"><img class="hero-kitchen" src="assets/hero-kitchen.jpg" alt="Bucătărie modernă"><img class="hero-living" src="assets/hero-living.jpg" alt="Living confortabil"><div class="hero-badge"><strong>1000+</strong>Vânzări anuale</div></div></div></section>`;
 }
 
-const products = [
-  {name:'Scaun „Nordic Comfort”', price:450, rating:'4.0 (76)', category:'Bucătărie', group:'Scaune', image:'chairs-1', detail:true},
-  {name:'Scaun „Albion Modern”', price:349, rating:'4.9 (36)', category:'Bucătărie', group:'Scaune', image:'chairs-2'},
-  {name:'Celeste Upholstered Dining Chair', price:500, rating:'4.9 (28)', category:'Bucătărie', group:'Scaune', image:'chairs-3'},
-  {name:'Wayne Dining Arm Chair', price:350, rating:'4.0 (45)', category:'Bucătărie', group:'Scaune', image:'chairs-4'},
-  {name:'Delmar side chair', price:400, rating:'3.8 (6)', category:'Bucătărie', group:'Scaune', image:'chairs-5'},
-  {name:'Designer Dining Chairs', price:370, rating:'5.0 (70)', category:'Bucătărie', group:'Scaune', image:'chairs-6'},
-  {name:'Canapeaua Stockholm', price:3600, rating:'3.8 (19)', category:'Living', group:'Canapele', image:'sofas-1'},
-  {name:'Designer sofa living', price:1000, rating:'5.0 (0)', category:'Living', group:'Canapele', image:'sofas-2'},
-  {name:'JASIWAY Cotton Line Beige Sofa', price:4500, rating:'4.9 (28)', category:'Living', group:'Canapele', image:'sofas-3'},
-  {name:'Canapea modernă', price:3500, rating:'4.0 (45)', category:'Living', group:'Canapele', image:'sofas-4'},
-  {name:'Sunroom Sofa and Daybed', price:6900, rating:'3.8 (6)', category:'Living', group:'Canapele', image:'sofas-5'},
-  {name:'Canapea elegantă', price:3700, rating:'5.0 (70)', category:'Living', group:'Canapele', image:'sofas-6'},
-  {name:'Wall Hooks With Shelf Oak Wood', price:250, rating:'4.4 (20)', category:'Decorațiuni', group:'Decorațiuni', image:'decor-1'},
-  {name:'Ceramic Wall Planters', price:190, rating:'5.0 (35)', category:'Decorațiuni', group:'Decorațiuni', image:'decor-2'},
-  {name:'2 Pack White Ceramic Wall Vases', price:150, rating:'4.9 (28)', category:'Decorațiuni', group:'Decorațiuni', image:'decor-3'},
-  {name:'One high dark shelf', price:290, rating:'3.8 (6)', category:'Decorațiuni', group:'Decorațiuni', image:'decor-4'},
-  {name:'Multi-functional doorway shelf', price:550, rating:'5.0 (70)', category:'Decorațiuni', group:'Decorațiuni', image:'decor-5'},
-  {name:'Tapestry - 3D Model for VRay', price:270, rating:'5.0 (70)', category:'Decorațiuni', group:'Decorațiuni', image:'decor-6'}
-];
-function productCard(product) {
-  const content = `<img src="assets/${product.image}.jpg" alt="${product.name}" loading="lazy"><span class="stars"><i class="bi bi-star-fill" aria-hidden="true"></i></span> ${product.rating}<h3>${product.name}</h3>`;
-  return `<article class="product-card">${product.detail ? `<a href="produs.html">${content}</a>` : content}<strong>${product.price} lei</strong></article>`;
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, character => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[character]));
 }
+function imageUrl(value) {
+  try {
+    const url = new URL(value, location.href);
+    if (url.protocol === 'https:' || url.origin === location.origin) return escapeHtml(url.href);
+  } catch (error) {
+    console.error('Adresă imagine invalidă:', error);
+  }
+  return '';
+}
+function productCard(product, recommendation = false) {
+  const name = escapeHtml(product.name);
+  const description = escapeHtml(product.description);
+  const price = escapeHtml(product.price);
+  const url = `produs.html?id=${encodeURIComponent(product.id)}`;
+  const image = `<img class="catalog-image" src="${imageUrl(product.image_url)}" alt="${name}" loading="lazy">`;
+  if (recommendation) return `<article class="recommendation"><a href="${url}">${image}<h3>${name}</h3></a><p>${description}</p><p>Preț demonstrativ: ${price} lei</p><a href="${url}">Află mai mult</a></article>`;
+  return `<article class="product-card"><a href="${url}">${image}<h3>${name}</h3></a><strong>${price} lei</strong></article>`;
+}
+async function getProducts(params) {
+  let response;
+  let data;
+  try {
+    response = await fetch(`api/products.php?${params}`);
+    data = await response.json();
+  } catch (error) {
+    console.error('Eroare la conectarea la API:', error);
+    throw new Error('Catalogul nu este disponibil momentan. Verifică conexiunea sau încearcă mai târziu.');
+  }
+  if (!response.ok) throw new Error(data.error || 'Catalogul nu este disponibil momentan.');
+  return data;
+}
+function showCatalogError(element, error) {
+  console.error('Eroare catalog:', error);
+  element.innerHTML = `<p class="catalog-error" role="alert">${escapeHtml(error.message || 'Catalogul nu este disponibil momentan.')}</p>`;
+}
+document.addEventListener('error', event => {
+  if (event.target instanceof HTMLImageElement && event.target.classList.contains('catalog-image')) {
+    const message = document.createElement('p');
+    message.className = 'catalog-error';
+    message.textContent = 'Imaginea produsului nu este disponibilă.';
+    event.target.replaceWith(message);
+  }
+}, true);
 const catalog = document.querySelector('#catalog-results');
 const productFilters = document.querySelector('#product-filters');
 if (catalog && productFilters) {
@@ -70,33 +92,55 @@ if (catalog && productFilters) {
   const initialCategory = [...productFilters.elements.category].find(input => input.value === category);
   if (initialCategory) initialCategory.checked = true;
   let searchTerm = (params.get('q') || '').trim().toLocaleLowerCase('ro');
-  function renderCatalog() {
+  let requestNumber = 0;
+  async function renderCatalog(pageNumber = 1) {
+    const request = ++requestNumber;
     const data = new FormData(productFilters);
-    const selected = data.getAll('category');
-    const min = data.get('min') === '' ? 0 : Number(data.get('min'));
-    const max = data.get('max') === '' ? Infinity : Number(data.get('max'));
-    const filtered = products.filter(p => (!selected.length || selected.includes(p.category)) && p.price >= min && p.price <= max && (!searchTerm || `${p.name} ${p.category} ${p.group}`.toLocaleLowerCase('ro').includes(searchTerm)));
-    catalog.innerHTML = filtered.length ? [...new Set(filtered.map(p => p.group))].map(group => {
-      const items = filtered.filter(p => p.group === group);
-      return `<section class="catalog-group"><h2>${items[0].category}</h2><h3>${group}</h3><div class="product-grid">${items.map(productCard).join('')}</div></section>`;
-    }).join('') : '<p>Nu am găsit produse pentru criteriile selectate.</p>';
+    const query = new URLSearchParams({page: String(pageNumber), q: searchTerm});
+    data.getAll('category').forEach(value => query.append('category[]', value));
+    for (const name of ['min', 'max']) if (data.get(name) !== '') query.set(name, data.get(name));
+    catalog.innerHTML = '<p>Se încarcă produsele...</p>';
+    try {
+      const result = await getProducts(query);
+      if (request !== requestNumber) return;
+      if (!result.products.length) {
+        catalog.innerHTML = '<p>Nu am găsit produse pentru criteriile selectate.</p>';
+        return;
+      }
+      const totalPages = Math.ceil(result.total / result.limit);
+      catalog.innerHTML = `<p>${result.total} produse demonstrative</p><div class="product-grid">${result.products.map(product => productCard(product)).join('')}</div><div class="pagination"><button class="button" type="button" data-page-number="${pageNumber - 1}" ${pageNumber <= 1 ? 'disabled' : ''}>Înapoi</button><span>Pagina ${pageNumber} din ${totalPages}</span><button class="button" type="button" data-page-number="${pageNumber + 1}" ${pageNumber >= totalPages ? 'disabled' : ''}>Înainte</button></div>`;
+    } catch (error) {
+      if (request === requestNumber) showCatalogError(catalog, error);
+    }
   }
-  productFilters.addEventListener('submit', event => { event.preventDefault(); renderCatalog(); });
-  productFilters.addEventListener('reset', () => { searchTerm = ''; setTimeout(renderCatalog, 0); });
+  catalog.addEventListener('click', event => {
+    const button = event.target.closest('[data-page-number]');
+    if (button) renderCatalog(Number(button.dataset.pageNumber));
+  });
+  productFilters.addEventListener('submit', event => { event.preventDefault(); renderCatalog(1); });
+  productFilters.addEventListener('reset', () => { searchTerm = ''; setTimeout(() => renderCatalog(1), 0); });
   renderCatalog();
 }
 const recommended = document.querySelector('#recommended');
 if (recommended) {
-  const items = [
-    ['Scaun „Nordic Line”', 'Lemn natural + material textil rezistent.', '450'],
-    ['Canapea „SoftSense”', 'Design scandinav, confort premium.', '4900'],
-    ['Căsuță „HomeLight”', 'Element decorativ din lemn pentru living sau dormitor.', '1100'],
-    ['Căsuță decorativă', 'Element decorativ din lemn pentru living sau dormitor.', '750']
-  ];
-  recommended.innerHTML = items.map(([name, description, price], i) => `<article class="recommendation"><img src="assets/recommended-${i + 1}.jpg" alt="${name}" loading="lazy"><h3>${name}</h3><p>${description}</p><p>Preț: ${price} lei</p><a href="produse.html">Vezi catalogul</a></article>`).join('');
+  recommended.innerHTML = '<p>Se încarcă produsele...</p>';
+  getProducts(new URLSearchParams({limit: '4'}))
+    .then(result => { recommended.innerHTML = result.products.length ? result.products.map(product => productCard(product, true)).join('') : '<p>Nu există produse în catalog.</p>'; })
+    .catch(error => showCatalogError(recommended, error));
 }
-const similar = document.querySelector('#similar-products');
-if (similar) similar.innerHTML = products.slice(2, 6).map(productCard).join('');
+const productDetail = document.querySelector('#product-detail');
+if (productDetail) {
+  const id = new URLSearchParams(location.search).get('id');
+  if (!id) {
+    productDetail.innerHTML = '<p>Selectează un produs din <a href="produse.html">catalog</a>.</p>';
+  } else {
+    getProducts(new URLSearchParams({id})).then(({product}) => {
+      document.title = `CasaNova Design | ${product.name}`;
+      const name = escapeHtml(product.name);
+      productDetail.innerHTML = `<div class="product-layout"><div class="product-image-wrap"><img class="product-main-image catalog-image" src="${imageUrl(product.image_url)}" alt="${name}"><div class="product-details"><section><h2><i class="bi bi-clipboard2-check" aria-hidden="true"></i> &nbsp; Descrierea produsului</h2><p class="product-detail-text">${escapeHtml(product.description)}</p></section></div></div><aside class="product-aside"><h1>${name}</h1><p>${escapeHtml(product.category)} / ${escapeHtml(product.product_group)}</p><p>Produs demonstrativ. Prețul și descrierea nu reprezintă o ofertă comercială.</p><div class="purchase"><strong>${escapeHtml(product.price)} lei</strong><div class="purchase-actions"><label>Cantitate <input id="quantity" type="number" min="1" value="1"></label><button type="button" data-add-cart>Adaugă în coș</button></div><div><h2><i class="bi bi-truck" aria-hidden="true"></i> &nbsp; Livrare</h2><p>Informațiile despre livrare vor fi disponibile ulterior.</p></div></div></aside></div>`;
+    }).catch(error => showCatalogError(productDetail, error));
+  }
+}
 
 const reviews = [
   {name:'Mihaela Flori', date:'09.08.2025', category:'Servicii', rating:5, text:'Proiectarea 3D a fost extrem de utilă — am văzut exact cum va arăta mobilierul în casă și am putut ajusta fiecare detaliu înainte de producție.'},
@@ -127,14 +171,6 @@ if (reviewFilters) {
 }
 const aboutReviews = document.querySelector('#about-reviews');
 if (aboutReviews) aboutReviews.innerHTML = reviews.slice(0, 6).map(reviewCard).join('');
-const productReviews = document.querySelector('#product-reviews');
-if (productReviews) productReviews.innerHTML = [
-  {name:'Ana Rotaru', date:'05.2025', rating:5, text:'Foarte comod și elegant — s-a potrivit perfect cu masa mea din bucătărie.'},
-  {name:'Sofia Cârnaț', date:'02.2025', rating:5, text:'Lemn de calitate și montaj extrem de ușor, recomand cu încredere.'},
-  {name:'Elisei Mazur', date:'02.2025', rating:5, text:'Culoarea este exact ca în poze, iar materialul șezutului se simte premium.'},
-  {name:'Emil Vrănescu', date:'09.2025', rating:5, text:'Un scaun stabil și ergonomic, ideal pentru lucrul la birou.'}
-].map(reviewCard).join('');
-
 document.querySelectorAll('[data-contact-form]').forEach(container => {
   container.innerHTML = `<form class="contact-form"><div class="form-row"><label>Nume/Prenume<input name="name" autocomplete="name" required></label><label>Email<input type="email" name="email" autocomplete="email" required></label></div><label>Tipul serviciului<input name="service" required></label><label>Mesaj (opțional)<textarea name="message"></textarea></label><button class="button" type="submit">Trimite</button><p class="form-message" role="status"></p></form>`;
   container.querySelector('form').addEventListener('submit', event => {
@@ -142,11 +178,8 @@ document.querySelectorAll('[data-contact-form]').forEach(container => {
     container.querySelector('.form-message').textContent = 'Formularul este demonstrativ și nu trimite încă mesaje. Integrarea va fi disponibilă ulterior.';
   });
 });
-document.querySelectorAll('[data-image]').forEach(button => button.addEventListener('click', () => {
-  document.querySelector('#product-image').src = button.dataset.image;
-}));
-const cartButton = document.querySelector('[data-add-cart]');
-if (cartButton) cartButton.addEventListener('click', () => {
+document.addEventListener('click', event => {
+  if (!event.target.closest('[data-add-cart]')) return;
   const quantity = document.querySelector('#quantity');
   if (!quantity.reportValidity()) return;
   const notice = document.createElement('div');
